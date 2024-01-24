@@ -1,12 +1,11 @@
 'use client'
 import { getStubMethod, getToastStub } from '@/utils'
 import { InboxOutlined } from '@ant-design/icons'
-import { Button, Radio, RadioChangeEvent, Space, Table, Upload, message } from 'antd'
+import { Button, Modal, Radio, RadioChangeEvent, Space, Table, Upload, message } from 'antd'
 import React, { ChangeEvent, useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import ContentFile from './components/ContentVueFile'
 import TextArea from 'antd/es/input/TextArea'
-
 interface DataItem {
   key: number
   [key: string]: any
@@ -24,6 +23,7 @@ const ImportExcelTc: React.FC = () => {
   const [itList, setListIt] = useState('');
   const [textData, setTextData] = useState('');
   const [isPage, setIsPage] = useState<boolean>();
+  const [visibleDonate, setVisibleDonate] = useState<boolean>(false);
 
   const [textStub, setTextStub] = useState({
     createStub: '',
@@ -75,11 +75,20 @@ const ImportExcelTc: React.FC = () => {
           }
         })
         setListIt(listIt)
-      } else {}
+      } else { }
     } else {
       return
     }
   }, [fileContent, dataFileExcel])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Hiển thị Modal mỗi 30 giây
+      setVisibleDonate(true)
+    }, 15000);
+
+    return () => clearInterval(interval); // Hủy vòng lặp khi component unmount
+  }, []);
 
   const renderFile = () => {
     const output = `
@@ -230,10 +239,10 @@ const ImportExcelTc: React.FC = () => {
 
   return (
     <div>
-      <ContentFile setStubContent={setStubContent} setFileContent={setFileContent} setFileName={setFileName} fileName={fileName}/>
+      <ContentFile setStubContent={setStubContent} setFileContent={setFileContent} setFileName={setFileName} fileName={fileName} />
       <div className='flex my-4'>
         <TextArea
-        className='w-2/4'
+          className='w-2/4'
           placeholder="Enter function get auth (setSessionStorageStubs)"
           value={textData}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTextData(e.target.value)}
@@ -263,6 +272,17 @@ const ImportExcelTc: React.FC = () => {
       {data.length > 0 && (
         <Table dataSource={dataSource} columns={columns} bordered pagination={false} scroll={{ x: 'max-content' }} />
       )}
+      <Modal
+        title="Ủng hộ tác giả"
+        open={visibleDonate}
+        onCancel={() => setVisibleDonate(false)}
+        footer={null}
+      >
+        <div>
+          <p>Hãy ủng hộ tác giả để có thể ra được những sản phẩm mới!!!!!!!</p>
+          <img src="/donate.jpg" />
+        </div>
+      </Modal>
     </div>
   )
 }
