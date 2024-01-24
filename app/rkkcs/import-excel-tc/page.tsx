@@ -81,14 +81,14 @@ const ImportExcelTc: React.FC = () => {
     }
   }, [fileContent, dataFileExcel])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Hiển thị Modal mỗi 30 giây
-      setVisibleDonate(true)
-    }, 30000);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     // Hiển thị Modal mỗi 30 giây
+  //     setVisibleDonate(true)
+  //   }, 30000);
 
-    return () => clearInterval(interval); // Hủy vòng lặp khi component unmount
-  }, []);
+  //   return () => clearInterval(interval); // Hủy vòng lặp khi component unmount
+  // }, []);
 
   const renderFile = async () => {
     const output = `
