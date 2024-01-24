@@ -1,8 +1,10 @@
 'use client'
+import { getStubMethod, getToastStub } from '@/utils'
 import { InboxOutlined } from '@ant-design/icons'
-import { Button, Checkbox, Col, GetProp, Modal, Row, Table, Upload, message } from 'antd'
-import React, { useState } from 'react'
+import { Button, Table, Upload, message } from 'antd'
+import React, { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
+import ContentFile from './components/ContentVueFile'
 
 interface DataItem {
   key: number
@@ -14,21 +16,113 @@ const ImportExcelTc: React.FC = () => {
   const [columns, setColumns] = useState<any[]>([])
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [stubContent, setStubContent] = useState([]);
+  const [fileContent, setFileContent] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [dataFileExcel, setDataFileExcel] = useState([]);
+  const [itList, setListIt] = useState('');
+
+  const [textStub, setTextStub] = useState({
+    createStub: '',
+    createStubPost: '',
+    createStubPut: '',
+    createStubDelete: '',
+  });
+  const [textToast, setTextToast] = useState({
+    defineToast: '',
+    resetToast: '',
+  });
+
+  useEffect(() => {
+    if (fileContent !== '') {
+      const { createStub, createStubPost, createStubPut, createStubDelete } = getStubMethod(stubContent)
+      const { defineToast, resetToast } = getToastStub(fileContent)
+
+      setTextStub({ createStub, createStubPost, createStubPut, createStubDelete })
+      setTextToast({ defineToast, resetToast })
+      if (dataFileExcel.length > 0) {
+        let listIt = ''
+        dataFileExcel?.map((item: any, index: number) => {
+          if (index > 1) {
+            const textClipboard =
+              'it(' +
+              '`' +
+              `No.${item[1]} [${item[2]}]: ${item[3]} ⇒ ${item[4]} ⇒ ${item[5]}` +
+              '`, async () => {' + '\n' +
+              `${createStub ? 'const stub = createStub();' : ''}` + '\n' +
+              `${createStubPost ? 'const stubPost = createStubPost();' : ''}` + '\n' +
+              `${createStubPut ? 'const stubPut = createStubPut();' : ''}` + '\n' +
+              `${createStubDelete ? 'const stubDelete = createStubDelete();' : ''}` + '\n' +
+              `setSessionStorageStubs(AuthorityConstant.SE_AUTH_NO);
+          const wrapper = componentMount();
+          await flushPromises();
+          try {
+            await wrapper.vm.$nextTick(async () => {` + '\n' +
+              `});
+          } finally {
+            wrapper.unmount();` + '\n' +
+              `${createStub ? 'stub.restore();' : ''}` + '\n' +
+              `${createStubPost ? 'stubPost.restore();' : ''}` + '\n' +
+              `${createStubPut ? 'stubPut.restore();' : ''}` + '\n' +
+              `${createStubDelete ? 'stubDelete.restore();' : ''}` + '\n' +
+              `restoreSessionStorageStubs();
+          }
+        });`
+            listIt = listIt + '\n' + '\n' + textClipboard
+          }
+        })
+        setListIt(listIt)
+        renderFile()
+      } else {
+        alert('pls enter UT file')
+      }
+    } else {
+      return
+    }
+  }, [fileContent, dataFileExcel])
+
+  const renderFile = () => {
+    const output = `
+    describe('${fileName}', () => {
+      const sandbox = sinon.createSandbox();
+      const componentMount = () => {
+        const global = {
+          components: {
+            Column,
+          },
+          plugins: [rkkcsPlugin],
+          stubs: [],
+        };
+        rkkcsPlugin.installed = false;
+        return mount(${fileName.replace('.vue', '')}, {
+          global,
+        });
+      };
+      ${textToast?.defineToast}
+
+      ${textStub.createStub}
+
+      ${textStub.createStubPost}
+
+      ${textStub.createStubPut}
+
+      ${textStub.createStubDelete}
+
+      afterEach(() => {
+        sandbox.restore();
+        ${textToast?.resetToast}
+        sinon.restore();
+      });
+
+      ${itList}
+    });
+    `
+
+    console.log('output',output)
+  }
 
   const showModal = () => {
     setOpen(true);
-  };
-
-  const handleOk = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setOpen(false);
-    }, 3000);
-  };
-
-  const handleCancel = () => {
-    setOpen(false);
   };
 
   const handleFileChange = (file: File) => {
@@ -74,7 +168,7 @@ const ImportExcelTc: React.FC = () => {
           key: 'Input',
           editable: true,
           width: 100,
-          render: (text: string) => <div style={{ maxWidth: '500px'}}>{text}</div>,
+          render: (text: string) => <div style={{ maxWidth: '500px' }}>{text}</div>,
         },
         {
           title: 'Output',
@@ -95,6 +189,8 @@ const ImportExcelTc: React.FC = () => {
       sheetData.shift()
       setColumns(tableColumns)
       const tempSetData: any = sheetData.filter((ele) => Array.isArray(ele) && ele.length > 0)
+      console.log('tempSetData', tempSetData)
+      setDataFileExcel(tempSetData)
       tempSetData.map((item: any, index: number) => {
         item.unshift(<GetText text={item} index={index} />)
         return { ...item, key: index }
@@ -116,12 +212,9 @@ const ImportExcelTc: React.FC = () => {
     }
   })
 
-  const onChangeCheckBox: GetProp<typeof Checkbox.Group, 'onChange'> = (checkedValues) => {
-    console.log('checked = ', checkedValues);
-  };
-
   return (
     <div>
+      <ContentFile setStubContent={setStubContent} setFileContent={setFileContent} setFileName={setFileName} />
       <Upload.Dragger
         beforeUpload={(file) => {
           handleFileChange(file)
@@ -140,52 +233,6 @@ const ImportExcelTc: React.FC = () => {
       {data.length > 0 && (
         <Table dataSource={dataSource} columns={columns} bordered pagination={false} scroll={{ x: 'max-content' }} />
       )}
-            <Modal
-        open={open}
-        title="Render file UT"
-        onOk={handleOk}
-        onCancel={handleCancel}
-        footer={[
-          <Button key="back" onClick={handleCancel}>
-            Return
-          </Button>,
-          <Button key="submit" type="primary" loading={loading} onClick={handleOk}>
-            Submit
-          </Button>,
-          <Button
-            key="link"
-            href="https://google.com"
-            type="primary"
-            loading={loading}
-            onClick={handleOk}
-          >
-            Search on Google
-          </Button>,
-        ]}
-      >
-  <Checkbox.Group style={{ width: '100%' }} onChange={onChangeCheckBox}>
-    <Row>
-      <Col className='my-2' span={12}>
-        <Checkbox value="GET">Method GET</Checkbox>
-      </Col>
-      <Col className='my-2' span={12}>
-        <Checkbox value="POST">Method POST</Checkbox>
-      </Col>
-      <Col className='my-2' span={12}>
-        <Checkbox value="PUT">Method PUT</Checkbox>
-      </Col>
-      <Col className='my-2' span={12}>
-        <Checkbox value="DELETE">Method DELETE</Checkbox>
-      </Col>
-      <Col className='my-2' span={12}>
-        <Checkbox value="TOAST">Toast message </Checkbox>
-      </Col>
-      <Col className='my-2' span={12}>
-        <Checkbox value="GENGO">Tạo GENGO</Checkbox>
-      </Col>
-    </Row>
-  </Checkbox.Group>
-      </Modal>
     </div>
   )
 }
@@ -193,7 +240,6 @@ const ImportExcelTc: React.FC = () => {
 export default ImportExcelTc
 
 const GetText = (props: { text: any, index: number }) => {
-  console.log('props',props)
   const { text, index } = props;
   const [messageApi, contextHolder] = message.useMessage()
 
