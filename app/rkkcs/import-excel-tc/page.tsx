@@ -1,10 +1,11 @@
 'use client'
 import { getStubMethod, getToastStub } from '@/utils'
 import { InboxOutlined } from '@ant-design/icons'
-import { Button, Table, Upload, message } from 'antd'
-import React, { useEffect, useState } from 'react'
+import { Button, Radio, RadioChangeEvent, Space, Table, Upload, message } from 'antd'
+import React, { ChangeEvent, useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import ContentFile from './components/ContentVueFile'
+import TextArea from 'antd/es/input/TextArea'
 
 interface DataItem {
   key: number
@@ -15,12 +16,14 @@ const ImportExcelTc: React.FC = () => {
   const [data, setData] = useState<DataItem[]>([])
   const [columns, setColumns] = useState<any[]>([])
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
   const [stubContent, setStubContent] = useState([]);
   const [fileContent, setFileContent] = useState('');
   const [fileName, setFileName] = useState('');
+  const [fileNameExcel, setFileNameExcel] = useState('');
   const [dataFileExcel, setDataFileExcel] = useState([]);
   const [itList, setListIt] = useState('');
+  const [textData, setTextData] = useState('');
+  const [isPage, setIsPage] = useState<boolean>();
 
   const [textStub, setTextStub] = useState({
     createStub: '',
@@ -49,10 +52,10 @@ const ImportExcelTc: React.FC = () => {
               '`' +
               `No.${item[1]} [${item[2]}]: ${item[3]} ⇒ ${item[4]} ⇒ ${item[5]}` +
               '`, async () => {' + '\n' +
-              `${createStub ? 'const stub = createStub();' : ''}` + '\n' +
-              `${createStubPost ? 'const stubPost = createStubPost();' : ''}` + '\n' +
-              `${createStubPut ? 'const stubPut = createStubPut();' : ''}` + '\n' +
-              `${createStubDelete ? 'const stubDelete = createStubDelete();' : ''}` + '\n' +
+              `${createStub ? 'const stub = createGetStub();' : ''}` + '\n' +
+              `${createStubPost ? 'const stubPost = createPostStub();' : ''}` + '\n' +
+              `${createStubPut ? 'const stubPut = createPutStub();' : ''}` + '\n' +
+              `${createStubDelete ? 'const stubDelete = createDeleteStub();' : ''}` + '\n' +
               `setSessionStorageStubs(AuthorityConstant.SE_AUTH_NO);
           const wrapper = componentMount();
           await flushPromises();
@@ -72,10 +75,7 @@ const ImportExcelTc: React.FC = () => {
           }
         })
         setListIt(listIt)
-        renderFile()
-      } else {
-        alert('pls enter UT file')
-      }
+      } else {}
     } else {
       return
     }
@@ -83,6 +83,16 @@ const ImportExcelTc: React.FC = () => {
 
   const renderFile = () => {
     const output = `
+    import ${fileName.replace('.vue', '')} from "@/${isPage ? 'pages' : 'components/organisms'}/${fileName}";
+    import { ApiUtils, SessionKey, SessionStorageUtils, ToastMessageUtils, rkkcsPlugin } from "@kuhonji/common-control-v4";
+    import { flushPromises, mount } from "@vue/test-utils";
+    import sinon from "sinon";
+    import sessionStorageMock from "tests/utils/sessionStorageMock";
+    import Column from "primevue/column";
+    import { TestUtils } from "tests/utils/testUtils";
+    import { PathConstant } from "@kuhonji/ah_v4";
+    import { AuthorityConstant } from "@/utils/raAuthorityConstant";
+
     describe('${fileName}', () => {
       const sandbox = sinon.createSandbox();
       const componentMount = () => {
@@ -98,6 +108,18 @@ const ImportExcelTc: React.FC = () => {
           global,
         });
       };
+
+      global.sessionStorage = sessionStorageMock();
+      let sessionStorageStub: sinon.SinonStub;
+      let sessionStorageUtilsStub: sinon.SinonStub;
+
+      ${textData}
+
+      const restoreSessionStorageStubs = () => {
+        sessionStorageStub?.restore();
+        sessionStorageUtilsStub?.restore();
+      };
+
       ${textToast?.defineToast}
 
       ${textStub.createStub}
@@ -117,15 +139,10 @@ const ImportExcelTc: React.FC = () => {
       ${itList}
     });
     `
-
-    console.log('output',output)
   }
 
-  const showModal = () => {
-    setOpen(true);
-  };
-
   const handleFileChange = (file: File) => {
+    setFileNameExcel(file?.name)
     const reader = new FileReader()
     reader.onload = (e) => {
       const workbook = XLSX.read(e.target?.result as string, { type: 'binary' })
@@ -189,7 +206,6 @@ const ImportExcelTc: React.FC = () => {
       sheetData.shift()
       setColumns(tableColumns)
       const tempSetData: any = sheetData.filter((ele) => Array.isArray(ele) && ele.length > 0)
-      console.log('tempSetData', tempSetData)
       setDataFileExcel(tempSetData)
       tempSetData.map((item: any, index: number) => {
         item.unshift(<GetText text={item} index={index} />)
@@ -214,7 +230,21 @@ const ImportExcelTc: React.FC = () => {
 
   return (
     <div>
-      <ContentFile setStubContent={setStubContent} setFileContent={setFileContent} setFileName={setFileName} />
+      <ContentFile setStubContent={setStubContent} setFileContent={setFileContent} setFileName={setFileName} fileName={fileName}/>
+      <div className='flex my-4'>
+        <TextArea
+        className='w-2/4'
+          placeholder="Enter function get auth (setSessionStorageStubs)"
+          value={textData}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setTextData(e.target.value)}
+        />
+        <Radio.Group className='ml-5' onChange={(e: RadioChangeEvent) => setIsPage(e.target.value)} value={isPage}>
+          <Space direction="vertical">
+            <Radio value={0}>Component</Radio>
+            <Radio value={1}>Page</Radio>
+          </Space>
+        </Radio.Group>
+      </div>
       <Upload.Dragger
         beforeUpload={(file) => {
           handleFileChange(file)
@@ -225,10 +255,10 @@ const ImportExcelTc: React.FC = () => {
         <p className='ant-upload-drag-icon'>
           <InboxOutlined />
         </p>
-        <p className='ant-upload-text'>Click or drag file to this area to upload</p>
+        <p className='ant-upload-text'>{fileNameExcel || 'Chọn file excel UT (.xlsx)'}</p>
       </Upload.Dragger>
       <div className='text-center	'>
-        {data.length > 0 && <Button className='font-bold my-3' onClick={showModal}>Render file UT</Button>}
+        {data.length > 0 && <Button disabled={!textData || !dataFileExcel || !fileContent || isPage == null} className='font-bold my-3' onClick={() => renderFile()}>Render file UT</Button>}
       </div>
       {data.length > 0 && (
         <Table dataSource={dataSource} columns={columns} bordered pagination={false} scroll={{ x: 'max-content' }} />
