@@ -85,12 +85,12 @@ const ImportExcelTc: React.FC = () => {
     const interval = setInterval(() => {
       // Hiển thị Modal mỗi 30 giây
       setVisibleDonate(true)
-    }, 15000);
+    }, 30000);
 
     return () => clearInterval(interval); // Hủy vòng lặp khi component unmount
   }, []);
 
-  const renderFile = () => {
+  const renderFile = async () => {
     const output = `
     import ${fileName.replace('.vue', '')} from "@/${isPage ? 'pages' : 'components/organisms'}/${fileName}";
     import { ApiUtils, SessionKey, SessionStorageUtils, ToastMessageUtils, rkkcsPlugin } from "@kuhonji/common-control-v4";
@@ -148,6 +148,13 @@ const ImportExcelTc: React.FC = () => {
       ${itList}
     });
     `
+
+    try {
+      await navigator.clipboard.writeText(output)
+      alert('Đã copy thành công')
+    } catch (err) {
+      alert(err)
+    }
   }
 
   const handleFileChange = (file: File) => {
