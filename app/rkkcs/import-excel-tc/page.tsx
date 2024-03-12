@@ -23,7 +23,7 @@ const ImportExcelTc: React.FC = () => {
   const [itList, setListIt] = useState('');
   const [textData, setTextData] = useState('');
   const [isPage, setIsPage] = useState<boolean>();
-  const [visibleDonate, setVisibleDonate] = useState<boolean>(false);
+  const [visibleDonate, setVisibleDonate] = useState<boolean>(true);
 
   const [textStub, setTextStub] = useState({
     createStub: '',
@@ -91,6 +91,7 @@ const ImportExcelTc: React.FC = () => {
   // }, []);
 
   const renderFile = async () => {
+    setVisibleDonate(true)
     const output = `
     import ${fileName.replace('.vue', '')} from "@/${isPage ? 'pages' : 'components/organisms'}/${fileName}";
     import { ApiUtils, SessionKey, SessionStorageUtils, ToastMessageUtils, rkkcsPlugin } from "@kuhonji/common-control-v4";
@@ -158,6 +159,7 @@ const ImportExcelTc: React.FC = () => {
   }
 
   const handleFileChange = (file: File) => {
+    setVisibleDonate(true)
     setFileNameExcel(file?.name)
     const reader = new FileReader()
     reader.onload = (e) => {
