@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 const OpenAI = require('openai');
 
 // Get your API key from environment variables
-const apiKey = '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';
+const apiKey = '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';
 function Openai() {
     const [text, setText] = useState<string>('')
     const [answer, setAnswer] = useState<string>('')
